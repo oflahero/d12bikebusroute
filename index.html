@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>D12 Bike Bus Routes</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+        function RouteControl(controlDiv, map, chkId, chkLabel, mapUpdateFunction, checked) {
+            // Set CSS for the control border.
+            var controlUI = document.createElement('div');
+            controlUI.style.backgroundColor = '#fff';
+            controlUI.style.border = '2px solid #fff';
+            controlUI.style.borderRadius = '0px';
+            controlUI.style.paddingLeft = '5px';
+
+            controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+            controlUI.style.cursor = 'pointer';
+            controlUI.style.marginBottom = '22px';
+            controlUI.style.textAlign = 'center';
+
+
+            controlUI.title = 'Toggle';
+            controlDiv.appendChild(controlUI);
+            var controlText = document.createElement('div');
+            controlText.style.color = 'rgb(25,25,25)';
+            controlText.style.fontFamily = 'Roboto,Arial,sans-serif';
+            controlText.style.fontSize = '12px';
+            controlText.style.lineHeight = '26px';
+            controlText.style.paddingLeft = '5px';
+            controlText.style.paddingRight = '5px';
+
+            controlUI.appendChild(controlText);
+
+            var checkbox = document.createElement('input');
+            checkbox.type = "checkbox";
+            checkbox.name = "name";
+            checkbox.value = "value";
+            checkbox.id = chkId;
+            checkbox.checked = checked ? 'checked' : '';
+
+            var label = document.createElement('label');
+            label.appendChild(document.createTextNode(chkLabel));
+            controlUI.appendChild(checkbox);
+            controlUI.appendChild(label);
+
+            checkbox.addEventListener('change', function(e) {mapUpdateFunction(this.checked)});
+        }
+
+        var map;
+        var currentRouteCoords, parkRouteCoords;
+
+        var stopsGeoJSON =
+        {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-6.309147, 53.327580]
+                    },
+                    "type": "Feature",
+                    "properties": {
+                        "title": "Start",
+                        "description": "Opposite Iveagh Gardens.",
+                        "stop": "0",
+                        "heading": "238"
+                    }
+                },       
+                {
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-6.317048, 53.325294]
+                    },
+                    "type": "Feature",
+                    "properties": {
+                        "title": "Stop 1",
+                        "description": "Near \"The Star\" bingo hall.",
+                        "stop": "1",
+                        "heading": "190"
+                    }
+                },       
+                {
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-6.325094, 53.320616]
+                    },
+                    "type": "Feature",
+                    "properties": {
+                        "title": "Stop 2",
+                        "description": "Bunting Rd, just after the green.",
+                        "stop": "2",
+                        "heading": "230"
+                    }
+                },       
+                {
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-6.332048, 53.317360]
+                    },
+                    "type": "Feature",
+                    "properties": {
+                        "title": "Stop 3",
+                        "description": "Joining Cromwellsfort Rd, crossing by the pedestrian lights.",
+                        "stop": "3",
+                        "heading": "165"
+                    }
+                },       
+                {
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-6.329585, 53.313906]
+                    },
+                    "type": "Feature",
+                    "properties": {
+                        "title": "Stop 4",
+                        "description": "St Peter's Rd, opposite the credit union.",
+                        "stop": "4",
+                        "heading": "150"
+                    }
+                },       
+                {
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-6.325977, 53.310530]
+                    },
+                    "type": "Feature",
+                    "properties": {
+                        "title": "Stop 5",
+                        "description": "St Peter's Rd again, pulling in by the petrol station.",
+                        "stop": "5",
+                        "heading": "150"
+                    }
+                },       
+                {
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-6.3229712, 53.3078428]
+                    },
+                    "type": "Feature",
+                    "properties": {
+                        "title": "Stop 6",
+                        "description": "Greentrees Rd, just after the Mountdown Rd right turn which is accessed using the pedestrian lights.",
+                        "stop": "6",
+                        "heading": "137"
+                    }
+                },       
+                {
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-6.327766, 53.304413]
+                    },
+                    "type": "Feature",
+                    "properties": {
+                        "title": "End",
+                        "description": "Inner gates of school! Access via pedestrian lights further down Limekiln Rd and doing a U-turn.",
+                        "stop": "7",
+                        "heading": "0"
+                    }
+                }
+            ]
+        };
+
+        function initCoords() {
+            currentRouteCoords = [
+                new google.maps.LatLng(53.327580,-6.309147),
+                new google.maps.LatLng(53.327292,-6.310557),
+                new google.maps.LatLng(53.326962,-6.312116),
+                new google.maps.LatLng(53.326710,-6.313275),
+                new google.maps.LatLng(53.326501,-6.314259),
+                new google.maps.LatLng(53.326318,-6.314973),
+                new google.maps.LatLng(53.326136,-6.315434),
+                new google.maps.LatLng(53.325860,-6.316096),
+                new google.maps.LatLng(53.325623,-6.316536),
+                new google.maps.LatLng(53.325338,-6.317013),
+                new google.maps.LatLng(53.325101,-6.317201),
+                new google.maps.LatLng(53.324787,-6.317427),
+                new google.maps.LatLng(53.324482,-6.317741),
+                new google.maps.LatLng(53.323995,-6.318289),
+                new google.maps.LatLng(53.323485,-6.318874),
+                new google.maps.LatLng(53.323229,-6.319249),
+                new google.maps.LatLng(53.322979,-6.319716),
+                new google.maps.LatLng(53.322556,-6.320655),
+                new google.maps.LatLng(53.322293,-6.321261),
+                new google.maps.LatLng(53.321878,-6.322204),
+                new google.maps.LatLng(53.321512,-6.322998),
+                new google.maps.LatLng(53.321189,-6.323776),
+                new google.maps.LatLng(53.320860,-6.324505),
+                new google.maps.LatLng(53.320421,-6.325524),
+                new google.maps.LatLng(53.320030,-6.326397),
+                new google.maps.LatLng(53.319757,-6.327005),
+                new google.maps.LatLng(53.319430,-6.327729),
+                new google.maps.LatLng(53.318795,-6.329152),
+                new google.maps.LatLng(53.318298,-6.330262),
+                new google.maps.LatLng(53.317937,-6.331078),
+                new google.maps.LatLng(53.317665,-6.331711),
+                new google.maps.LatLng(53.317486,-6.331910),
+                new google.maps.LatLng(53.317249,-6.332049),
+                new google.maps.LatLng(53.317190,-6.332049),
+                new google.maps.LatLng(53.317148,-6.331835),
+                new google.maps.LatLng(53.317100,-6.331862),
+                new google.maps.LatLng(53.317052,-6.332650),
+                new google.maps.LatLng(53.316930,-6.332763),
+                new google.maps.LatLng(53.316600,-6.332548),
+                new google.maps.LatLng(53.315644,-6.331516),
+                new google.maps.LatLng(53.314511,-6.330258),
+                new google.maps.LatLng(53.313223,-6.328856),
+                new google.maps.LatLng(53.312364,-6.327906),
+                new google.maps.LatLng(53.311057,-6.326565),
+                new google.maps.LatLng(53.310134,-6.325608),
+                new google.maps.LatLng(53.308958,-6.324299),
+                new google.maps.LatLng(53.307939,-6.323022),
+                new google.maps.LatLng(53.307525,-6.322330),
+                new google.maps.LatLng(53.307483,-6.322437),
+                new google.maps.LatLng(53.307769,-6.322899),
+                new google.maps.LatLng(53.307397,-6.323451),
+                new google.maps.LatLng(53.307076,-6.323757),
+                new google.maps.LatLng(53.306494,-6.324175),
+                new google.maps.LatLng(53.306288,-6.324721),
+                new google.maps.LatLng(53.305791,-6.326230),
+                new google.maps.LatLng(53.305048,-6.325625),
+                new google.maps.LatLng(53.304490,-6.325137),
+                new google.maps.LatLng(53.304394,-6.325813),
+                new google.maps.LatLng(53.304373,-6.326988),
+                new google.maps.LatLng(53.304425,-6.328083),
+                new google.maps.LatLng(53.304476,-6.329068),
+                new google.maps.LatLng(53.304518,-6.329073),
+                new google.maps.LatLng(53.304463,-6.327877),
+                new google.maps.LatLng(53.304694,-6.327834),
+                new google.maps.LatLng(53.305043,-6.327941)
+                ];
+
+                parkRouteCoords = [
+                new google.maps.LatLng(53.327561,-6.309201),
+                new google.maps.LatLng(53.326317,-6.314931),
+                new google.maps.LatLng(53.325920,-6.316025),
+                new google.maps.LatLng(53.325100,-6.317141),
+                new google.maps.LatLng(53.324805,-6.317506),
+                new google.maps.LatLng(53.323888,-6.318430),
+                new google.maps.LatLng(53.323260,-6.319203),
+                new google.maps.LatLng(53.322850,-6.319975),
+                new google.maps.LatLng(53.317797,-6.331365),
+                new google.maps.LatLng(53.317451,-6.331966),
+                new google.maps.LatLng(53.317079,-6.332116),
+                new google.maps.LatLng(53.317015,-6.332760),
+                new google.maps.LatLng(53.316605,-6.332545),
+                new google.maps.LatLng(53.313997,-6.329734),
+                new google.maps.LatLng(53.313703,-6.330249),
+                new google.maps.LatLng(53.313254,-6.330785),
+                new google.maps.LatLng(53.312985,-6.331300),
+                new google.maps.LatLng(53.312754,-6.331901),
+                new google.maps.LatLng(53.312651,-6.332352),
+                new google.maps.LatLng(53.312651,-6.333038),
+                new google.maps.LatLng(53.312498,-6.333103),
+                new google.maps.LatLng(53.311921,-6.332652),
+                new google.maps.LatLng(53.310716,-6.331494),
+                new google.maps.LatLng(53.309626,-6.330528),
+                new google.maps.LatLng(53.308972,-6.333983),
+                new google.maps.LatLng(53.308844,-6.334219),
+                new google.maps.LatLng(53.308241,-6.334197),
+                new google.maps.LatLng(53.307818,-6.334026),
+                new google.maps.LatLng(53.307070,-6.334240),
+                new google.maps.LatLng(53.306895,-6.334197),
+                new google.maps.LatLng(53.306741,-6.334433),
+                new google.maps.LatLng(53.306651,-6.334648),
+                new google.maps.LatLng(53.306318,-6.334176),
+                new google.maps.LatLng(53.305779,-6.333553),
+                new google.maps.LatLng(53.305305,-6.333446),
+                new google.maps.LatLng(53.304476,-6.333551),
+                new google.maps.LatLng(53.304360,-6.332470),
+                new google.maps.LatLng(53.304540,-6.329637),
+                new google.maps.LatLng(53.304485,-6.327862),
+                new google.maps.LatLng(53.304841,-6.327835),
+                new google.maps.LatLng(53.305033,-6.327942)
+                ];
+            }
+
+
+
+      function initMap() {
+          initCoords();
+
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: {lat: 53.316, lng: -6.317},
+          zoom: 15,
+          mapTypeControl: true,
+          mapTypeControlOptions: {
+            style: google.maps.MapTypeControlStyle.DEFAULT,
+            mapTypeIds: ['roadmap', 'satellite']
+            }
+        });
+
+        var controlDiv = document.createElement('div');
+        var rControl = new RouteControl(controlDiv, map, 'chkIdealRoute', 'Show preferred route', function(show) {
+            r2.setMap(show ? map : null);
+        }, true);
+
+        var controlDiv2 = document.createElement('div');
+        var bControl = new RouteControl(controlDiv2, map, 'chkBikeLayer', 'Show existing bike routes', function(show) {
+            bikeLayer.setMap(show ? map : null);
+        });
+
+        controlDiv.index = 1;
+        map.controls[google.maps.ControlPosition.LEFT_TOP].push(controlDiv);
+        controlDiv.style['padding-left'] = '10px';
+
+        controlDiv2.index = 1;
+        map.controls[google.maps.ControlPosition.LEFT_TOP].push(controlDiv2);
+        controlDiv2.style['padding-left'] = '10px';
+
+        var bikeLayer = new google.maps.BicyclingLayer();
+        //bikeLayer.setMap(map);
+
+        var currentRoutePolyOptions = {
+            path: currentRouteCoords,
+            strokeColor: "#FF0000",
+            strokeOpacity: 1,
+            strokeWeight: 5
+            };
+
+        var r1 = new google.maps.Polyline(currentRoutePolyOptions);
+        r1.setMap(map);
+
+        // Dashed line for park route:
+        var lineSymbol = {
+            path: 'M 0,-1 0,1',
+            strokeOpacity: 1,
+            scale: 4
+        };
+        var parkRoutePolyOptions = {
+            path: parkRouteCoords,
+            strokeColor: "#00ff00",
+            strokeOpacity: 0,
+            strokeWeight: 5,
+            icons: [{
+                icon: lineSymbol,
+                offset: '0',
+                repeat: '20px'
+            }]
+            };
+
+        var r2 = new google.maps.Polyline(parkRoutePolyOptions);
+        r2.setMap(map);
+
+        map.data.addGeoJson(stopsGeoJSON);
+
+        map.data.setStyle(function(feature) {
+            return feature.getProperty('stop')==='0' ?
+            /** @type {google.maps.Data.StyleOptions} */{
+                icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+            } : feature.getProperty('stop')==='7' ?
+            null : /** @type {google.maps.Data.StyleOptions} */{
+                icon: "http://maps.google.com/mapfiles/ms/icons/cycling.png"
+            }
+        });
+
+        const apiKey = 'AIzaSyDP32h6mIGx2DeN-UN4uWhEDTo1hcWMqvM';
+        const infoWindow = new google.maps.InfoWindow();
+
+        // Show stop information when clicked.
+        map.data.addListener('click', (event) => {
+            const title = event.feature.getProperty('title');
+            const description = event.feature.getProperty('description');
+            const stop = parseInt( event.feature.getProperty('stop'), 10);
+
+            const position = event.feature.getGeometry().get();
+            const heading = event.feature.getProperty('heading');
+            const content = `
+            <h2>${title}</h2><p>${description}</p>
+            <p><img src="https://maps.googleapis.com/maps/api/streetview?size=350x120&location=${position.lat()},${position.lng()}&heading=${heading}&key=${apiKey}"></p>
+            `;
+
+            infoWindow.setContent(content);
+            infoWindow.setPosition(position);
+            infoWindow.setOptions({pixelOffset: new google.maps.Size(0, -30)});
+            infoWindow.open(map);
+        });
+
+        google.maps.event.addListener(map, "click", function(event) {
+            infoWindow.close();
+    });
+
+    var bounds = new google.maps.LatLngBounds();
+    for(var i=0; i < stopsGeoJSON.features.length; i++) {
+        var c = stopsGeoJSON.features[i].geometry.coordinates;
+        bounds.extend(new google.maps.LatLng(c[1],c[0]));
+    }
+
+  map.fitBounds(bounds);
+
+  map.data.forEach(function (feature) {
+    if (feature.getProperty('stop') === "0" ) {
+        setTimeout(function(){
+            google.maps.event.trigger(map.data, 'click', {
+              feature: feature
+            });
+        }, 3000);
+    }
+  });
+}
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDP32h6mIGx2DeN-UN4uWhEDTo1hcWMqvM&callback=initMap"
+    async defer></script>
+  </body>
+</html>
