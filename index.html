@@ -180,7 +180,8 @@
                         "title": "End",
                         "description": "Inner gates of school! Access via pedestrian lights further down Limekiln Rd and doing a U-turn.",
                         "stop": "7",
-                        "heading": "0"
+                        "heading": "0",
+                        "useiframe": "!4v1582491419760!6m8!1m7!1sbesq-ggFxVjgIOTZA3AnjA!2m2!1d53.08237734473492!2d-4.001932434914895!3f206.32958933777084!4f6.2397014646903415!5f0.7820865974627469"
                     }
                 }
             ]
@@ -382,6 +383,8 @@
         const apiKey = 'AIzaSyDP32h6mIGx2DeN-UN4uWhEDTo1hcWMqvM';
         const infoWindow = new google.maps.InfoWindow();
 
+        const sviFramePre = '<iframe src="https://www.google.com/maps/embed?';
+        const sviFramePost = '" width="400" height="300" frameborder="0" style="border:0;" allowfullscreen=""></iframe>';
         // Show stop information when clicked.
         map.data.addListener('click', (event) => {
             const title = event.feature.getProperty('title');
@@ -390,9 +393,11 @@
 
             const position = event.feature.getGeometry().get();
             const heading = event.feature.getProperty('heading');
+            const iframeSrc = event.feature.getProperty('useiframe');
+            const imgContent='<img src="https://maps.googleapis.com/maps/api/streetview?size=350x120&location=${position.lat()},${position.lng()}&heading=${heading}&key=${apiKey}" />';
             const content = `
             <h2>${title}</h2><p>${description}</p>
-            <p><img src="https://maps.googleapis.com/maps/api/streetview?size=350x120&location=${position.lat()},${position.lng()}&heading=${heading}&key=${apiKey}"></p>
+            <p>'+(iframeSrc?sviFramePre+iframeSrc+sviFramePost:imgContent)+'</p>
             `;
 
             infoWindow.setContent(content);
